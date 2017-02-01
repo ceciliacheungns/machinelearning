@@ -1,0 +1,99 @@
+---
+title: "Assignment 1 Group 1 - LF"
+author: "Louise Fallon"
+date: "30 January 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(caret) ##for createDataPartition
+library(class) #for knn
+library(ggplot2) #for ggplot
+library(reshape2) #for melt
+library(knitr) #for kable
+```
+
+```{r}
+##load data
+whitewine <- read.table(url("http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"), sep = ";", header=TRUE)
+```
+
+```{r}
+##create new variable that is 1 for high quality
+##and 0 for low quality
+whitewine$good <- 0
+whitewine$good[whitewine$quality >= 6] <- 1
+```
+
+```{r}
+#normalise the data according to the z-score
+scaled <- as.data.frame(scale(whitewine[1:11], center = TRUE, scale = TRUE))
+```
+ 
+Using the 
+ 
+```{r} 
+##create training, validation and test sets
+set.seed(808080)
+#create balanced set of training data at 40%
+#(the createDataPartition function "shuffles")
+intrain <- createDataPartition(whitewine$good, p = 0.4, list=FALSE)
+
+scaled.train <- scaled[ intrain,]
+whitewinetrainoutcome <- whitewine$good[ intrain]
+
+scaled.temp <- scaled[ -intrain,]
+whitewinetempoutcome <- whitewine$good[ -intrain]
+whitewine.temp <- whitewine[ -intrain, ]
+
+#split remaining set (60%) into two equal sets of 30% each
+inval <- createDataPartition(whitewine.temp$good, p = 0.5, list=FALSE)
+scaled.val <- scaled.temp[ inval,]
+whitewinevaloutcome <- whitewinetempoutcome[ inval]
+scaled.test <- scaled.temp[ -inval,]
+whitewinetestoutcome <- whitewinetempoutcome[ -inval]
+```
+
+```{r} 
+kperformance <- data.frame(k=1:80, correctlypredicted.val=rep(0,80), correctlypredicted.train=rep(0,80))
+##find k nearest neigbours
+for (i in 1:80)
+   {knnprediction.val <- knn(scaled.train, scaled.val, whitewinetrainoutcome, k = i)
+   knnprediction.train <- knn(scaled.train, scaled.train, whitewinetrainoutcome, k = i)
+   
+   totalnumbercorrectlypredicted.val <-  sum((as.numeric(whitewinevaloutcome) - (as.numeric(knnprediction.val)-1)) == 0)
+   totalnumbercorrectlypredicted.train <-  sum((as.numeric(whitewinetrainoutcome) - (as.numeric(knnprediction.train)-1)) == 0)
+   
+   kperformance$correctlypredicted.val[i] <- totalnumbercorrectlypredicted.val/nrow(scaled.val)
+   kperformance$correctlypredicted.train[i] <- totalnumbercorrectlypredicted.train/nrow(scaled.train)
+}
+
+max <- kperformance[kperformance$correctlypredicted.val==max(kperformance$correctlypredicted.val),]
+```
+
+```{r}
+dataforplot <- melt(kperformance, id="k")
+dataforplot$value <- (1- dataforplot$value)*100
+dataforplot$dataset <- rep("none",80)
+dataforplot$dataset[dataforplot$variable=="correctlypredicted.val"] <- "validation"
+dataforplot$dataset[dataforplot$variable=="correctlypredicted.train"] <- "train"
+ggplot(dataforplot, aes(x=k, y=value, col=dataset)) + geom_line() + ylab("percentage incorrectly predicted") + scale_x_reverse()
+```
+
+Where the highest value is at k = `r max$k`, with approximately `r round(max$correctlypredicted.val,2)*100`% correctly predicted on the validation set.
+
+```{r}
+knnprediction.test <- knn(scaled.train, scaled.test, whitewinetrainoutcome, k = max$k)
+totalnumbercorrectlypredicted.test <- sum((as.numeric(whitewinetestoutcome) - (as.numeric(knnprediction.test)-1)) == 0)
+percentagecorrectlypredicted.test <- (totalnumbercorrectlypredicted.val/nrow(scaled.val))*100
+confusion <- as.matrix(table(knnprediction.test,whitewinetestoutcome))
+```
+
+
+|            |                            | Actual Outcome|
+|:-----------|:---|------------------:|------------------:|
+|            |    |                  0|                  1|
+|  Knn-       |0  | `r confusion[1,1]`| `r confusion[1,2]`|
+| Prediction |1   | `r confusion[2,1]`| `r confusion[2,2]`|
+
