@@ -1,0 +1,155 @@
+---
+title: "Assignment 1 Group 1 Question 2a"
+author: 'Group 1: Low Siow-Meng, Louise Fallon'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(class)
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE)
+##set seed to ensure random processes run consistently
+set.seed(2017)
+```
+
+```{r}
+##load the data file
+whiteWines <- read.csv("winequality-white.csv", sep = ";")
+```
+
+```{r}
+# New binary column indicating good quality
+whiteWines$GoodWine <- (whiteWines$quality >= 6)
+
+##separate inputs (X) and outcome (Y)
+whiteWines.X <- subset(whiteWines, select = -c(quality, GoodWine))
+whiteWines.Y <- whiteWines$GoodWine
+```
+
+
+```{r}
+# Separate data into training (~40%), validation (~30%), and test (~30%)
+trainSize <- round(0.4 * nrow(whiteWines))
+inTrain <- sample.int(nrow(whiteWines), size = trainSize)
+
+train.X <- whiteWines.X[inTrain, ]
+train.Y <- whiteWines.Y[inTrain]
+others.X <- whiteWines.X[-inTrain, ]
+others.Y <- whiteWines.Y[-inTrain]
+
+validationSize <- round(0.5 * nrow(others.X))
+inValidation <- sample.int(nrow(others.X), size = validationSize)
+
+validation.X <- others.X[inValidation, ]
+validation.Y <- others.Y[inValidation]
+test.X <- others.X[-inValidation, ]
+test.Y <- others.Y[-inValidation]
+```
+
+To separate the data set into the training, validation and test sets, we first split into a training set (`r nrow(train.X)` observations, ~40%) and an others set (`r nrow(others.X)` observations, ~60%), using a random sample of the observations, then we split the others set half and half into a validation set (`r nrow(validation.X)` observations, ~30%), and a test set (`r nrow(test.X)` observations, ~30%).
+
+```{r}
+##merge the train and validation sets together
+trainValid.X <- rbind(train.X, validation.X)
+trainValid.Y <- c(train.Y, validation.Y)
+
+# Compute column mean and sd for train + validation set (for scaling purpose)
+trainValid.X.mean <- colMeans(trainValid.X)
+trainValid.X.sd <- apply(trainValid.X, 2, sd) # sd function uses n - 1 as denominator (sample sd)
+
+
+##function to create the z-Score
+zScore <- function(data, meanVal, sdVal) {
+    
+    return((data - meanVal[col(data)]) / sdVal[col(data)])
+}
+
+train.X.zScore <- zScore(train.X, trainValid.X.mean, trainValid.X.sd)
+validation.X.zScore <- zScore(validation.X, trainValid.X.mean, trainValid.X.sd)
+test.X.zScore <- zScore(test.X, trainValid.X.mean, trainValid.X.sd)
+trainValid.X.zScore <- zScore(trainValid.X, trainValid.X.mean, trainValid.X.sd)
+```
+
+The training and validation set data is used to provide the parameters (means and sample standard deviations) to the z-score function, which will then be used to scale the training, validation and test data with the same normalisation formula.
+
+```{r}
+validationPerf = data.frame(k = NULL, acc = NULL, sens = NULL, spec = NULL)
+
+# Train 80 KNN classifiers and validate using validation data
+for (i in 1:80) {
+    knn.pred <- knn(train = train.X.zScore, 
+                    test = validation.X.zScore, 
+                    cl = train.Y, 
+                    k = i)
+    perfTable <- table(validation.Y, knn.pred)
+    ##find the true positives and true negatives
+    numTP <- perfTable["TRUE", "TRUE"]
+    numTN <- perfTable["FALSE", "FALSE"]
+    ##add a row to the validationPerf data frame with the results
+    validationPerf <- rbind(validationPerf, 
+                            data.frame(k = i, 
+                                       acc = (numTP + numTN) / nrow(validation.X), 
+                                       sens = numTP / (numTP + perfTable["TRUE", "FALSE"]), 
+                                       spec = numTN / (numTN + perfTable["FALSE", "TRUE"])))
+}
+
+
+# Best K based on accuracy
+bestmodel <- validationPerf[order(-validationPerf$acc),][1,]
+
+```
+
+When we train and assess the model for k between 1 and 80, we get the following results:
+[plot to be included]
+```{r}
+##to do: make a graph with the data above.
+```
+
+Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing moedls. If true negatives were more important, we would have used sensitivity and if true positives were more important we would have used sensitivity.
+
+We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$acc,2)*100`%
+
+```{r}
+# Naive predictor accuracy (for benchmark)
+naiveprob <- sum(train.Y) / length(train.Y) # TRUE is the dominant class in training set
+# Accuracy, from the Confusion Matrix of naive predictor (always predict true)
+naiveacc <- table(validation.Y, rep(TRUE, length(validation.Y)))["TRUE", "TRUE"] / length(validation.Y)
+```
+
+A naive predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`%. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`%.
+
+
+```{r}
+# Test Phase: retrain using both train and validation data before testing
+knn.pred.test <- knn(train = trainValid.X.zScore, 
+                     test = test.X.zScore, 
+                     cl = trainValid.Y, 
+                     k = bestmodel$k)
+
+# Confusion Matrix - Generalisation Error
+testPerf <- table(test.Y, knn.pred.test)
+numTP <- testPerf["TRUE", "TRUE"]
+numTN <- testPerf["FALSE", "FALSE"]
+testPerf <- data.frame(k = bestmodel$k, 
+                       acc = (numTP + numTN) / length(test.Y), 
+                       sens = numTP / (numTP + testPerf["TRUE", "FALSE"]), 
+                       spec = numTN / (numTN + testPerf["FALSE", "TRUE"]))
+kable(testPerf)
+```
+
+The model with the best k is then retrained with the data from both the test and validation set, this will more accurately reflect the out of sample error than if only the test set was used, because we will eventually train the model on the full sample of data to maximise its performance. The performance of this model can be seen in the table above.
+
+```{r}
+# Final step, train using all data for future use
+# Scale using all data
+whiteWines.X.zScore <- as.data.frame(scale(whiteWines.X))
+whiteWines.knn <- knn(train = whiteWines.X.zScore, 
+                      test = whiteWines.X.zScore, 
+                      cl = whiteWines.Y, 
+                      k = bestmodel$k)
+```
+
+
+As a final step, we then train the model with the best k with all the data (training, test and vslidation), to be used for predictions of future data.
+
+*Discussion of whether this is a good classifier based on: sensitivity to seed, comparison to other ks, comparison to naive estimator*
