@@ -1,12 +1,14 @@
 ---
 title: "Assignment 1 Group 1 Question 2a"
-author: 'Group 1: Low Siow-Meng, Louise Fallon'
+author: 'Group 1: Siow Meng Low, Louise Fallon, Nikhita Venkatesan, George Pastakas, Cecilia Nok Sze Cheung, Steven Locorotondo'
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 library(class)
 library(knitr)
+library(ggplot2)
+library(reshape2)
 knitr::opts_chunk$set(echo = FALSE)
 ##set seed to ensure random processes run consistently
 set.seed(2017)
@@ -74,9 +76,11 @@ The training and validation set data is used to provide the parameters (means an
 
 ```{r}
 validationPerf = data.frame(k = NULL, acc = NULL, sens = NULL, spec = NULL)
+trainPerf = data.frame(k = NULL, acc = NULL, sens = NULL, spec = NULL)
 
 # Train 80 KNN classifiers and validate using validation data
 for (i in 1:80) {
+    #performance on validation data
     knn.pred <- knn(train = train.X.zScore, 
                     test = validation.X.zScore, 
                     cl = train.Y, 
@@ -88,26 +92,49 @@ for (i in 1:80) {
     ##add a row to the validationPerf data frame with the results
     validationPerf <- rbind(validationPerf, 
                             data.frame(k = i, 
-                                       acc = (numTP + numTN) / nrow(validation.X), 
-                                       sens = numTP / (numTP + perfTable["TRUE", "FALSE"]), 
-                                       spec = numTN / (numTN + perfTable["FALSE", "TRUE"])))
+                                       accuracy = (numTP + numTN) / nrow(validation.X), 
+                                       sensitivity = numTP / (numTP + perfTable["TRUE", "FALSE"]), 
+                                       specificity = numTN / (numTN + perfTable["FALSE", "TRUE"])))
+    
+    #performance on training data
+    knn.train.pred <- knn(train = train.X.zScore, 
+                    test = train.X.zScore, 
+                    cl = train.Y, 
+                    k = i)
+    perfTable <- table(train.Y, knn.train.pred)
+    numTP <- perfTable["TRUE", "TRUE"]
+    numTN <- perfTable["FALSE", "FALSE"]
+    ##add a row to the validationPerf data frame with the results
+    trainPerf <- rbind(trainPerf, 
+                            data.frame(k = i, 
+                                       accuracy = (numTP + numTN) / nrow(train.X), 
+                                       sensitivity = numTP / (numTP + perfTable["TRUE", "FALSE"]), 
+                                       specificity = numTN / (numTN + perfTable["FALSE", "TRUE"])))
 }
 
 
 # Best K based on accuracy
-bestmodel <- validationPerf[order(-validationPerf$acc),][1,]
+bestmodel <- validationPerf[order(-validationPerf$accuracy),][1,]
 
 ```
 
 When we train and assess the model for k between 1 and 80, we get the following results:
-[plot to be included]
-```{r}
-##to do: make a graph with the data above.
+
+```{r fig.height=3}
+##merge validation and training performance data
+trainPerf$data <- "training"
+validationPerf$data <- "validation"
+
+dataforplot1 <- rbind(trainPerf,validationPerf)
+subsetdataforplot <- dataforplot1[dataforplot1$k==bestmodel$k,]
+
+ggplot(dataforplot1, aes(x=k, y=accuracy, col=data)) + geom_line() + scale_x_reverse() + geom_point(data=subsetdataforplot, colour="darkgray")
+##to include a dot for best k
 ```
 
-Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing moedls. If true negatives were more important, we would have used sensitivity and if true positives were more important we would have used sensitivity.
+Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing moedls. If true negatives were more important, we would have used sensitivity and if true positives were more important we would have used specificity.
 
-We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$acc,2)*100`%
+We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$accuracy,2)*100`%
 
 ```{r}
 # Naive predictor accuracy (for benchmark)
@@ -117,7 +144,6 @@ naiveacc <- table(validation.Y, rep(TRUE, length(validation.Y)))["TRUE", "TRUE"]
 ```
 
 A naive predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`%. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`%.
-
 
 ```{r}
 # Test Phase: retrain using both train and validation data before testing
@@ -131,9 +157,9 @@ testPerf <- table(test.Y, knn.pred.test)
 numTP <- testPerf["TRUE", "TRUE"]
 numTN <- testPerf["FALSE", "FALSE"]
 testPerf <- data.frame(k = bestmodel$k, 
-                       acc = (numTP + numTN) / length(test.Y), 
-                       sens = numTP / (numTP + testPerf["TRUE", "FALSE"]), 
-                       spec = numTN / (numTN + testPerf["FALSE", "TRUE"]))
+                       accuracy = (numTP + numTN) / length(test.Y), 
+                       sensitivity = numTP / (numTP + testPerf["TRUE", "FALSE"]), 
+                       specificity = numTN / (numTN + testPerf["FALSE", "TRUE"]))
 kable(testPerf)
 ```
 
@@ -150,6 +176,18 @@ whiteWines.knn <- knn(train = whiteWines.X.zScore,
 ```
 
 
-As a final step, we then train the model with the best k with all the data (training, test and vslidation), to be used for predictions of future data.
+As a final step, we then train the model with the best k with all the data (training, test and validation), to be used for predictions of future data.
 
-*Discussion of whether this is a good classifier based on: sensitivity to seed, comparison to other ks, comparison to naive estimator*
+##How do you judge whether the classifier is well-suited for the data set?
+
+* From the graph we can see that for 5<k<80, the accuracy seems relatively constant, so the choice of k does not make a huge difference. This result is robust to different seeds, and therefore different test/validation sets, and implies that the selection of k may not have a huge impact on accuracy of predictio for future data points.
+* The estimated out of sample error is `r round(bestmodel$accuracy,2)*100`%, compared with `r round(naiveacc,2)*100`% for the naive estimator, even though this is a definite uplift, it is still not a highly accurate predictor.
+* Our classifier is more sensitive (predicting true positives given a true result), than it is specific (predicted true negatives given a false result), with specificity decreasing with k, so if it were true negatives that we were more interested in, we may want to choose a lower k.
+
+```{r fig.height=3}
+##merge validation and training performance data
+dataforplot2 <- melt(dataforplot1[dataforplot1$data=="validation", 1:4], id="k")
+
+ggplot(dataforplot2, aes(x=k, y=value, col=variable)) + geom_line() + ylab("accuracy") + scale_x_reverse() + labs(color="")
+##to include a dot for best k
+```
