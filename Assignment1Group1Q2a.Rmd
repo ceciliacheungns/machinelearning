@@ -72,7 +72,7 @@ test.X.zScore <- zScore(test.X, trainValid.X.mean, trainValid.X.sd)
 trainValid.X.zScore <- zScore(trainValid.X, trainValid.X.mean, trainValid.X.sd)
 ```
 
-The training and validation set data is used to provide the parameters (means and sample standard deviations) to the z-score function, which will then be used to scale the training, validation and test data with the same normalisation formula.
+The training and validation set data is used to provide the parameters (means and sample standard deviations) to the z-score function, which will then be used to scale the training, validation and test data.
 
 ```{r}
 validationPerf = data.frame(k = NULL, acc = NULL, sens = NULL, spec = NULL)
@@ -132,18 +132,9 @@ ggplot(dataforplot1, aes(x=k, y=accuracy, col=data)) + geom_line() + scale_x_rev
 ##to include a dot for best k
 ```
 
-Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing moedls. If true negatives were more important, we would have used sensitivity and if true positives were more important we would have used specificity.
+Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing moedls. If true negatives were more important, we would have used sensitivity and if true positives were more important we would have used specificity. We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$accuracy,2)*100`% on the validation set.
 
-We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$accuracy,2)*100`%
-
-```{r}
-# Naive predictor accuracy (for benchmark)
-naiveprob <- sum(train.Y) / length(train.Y) # TRUE is the dominant class in training set
-# Accuracy, from the Confusion Matrix of naive predictor (always predict true)
-naiveacc <- table(validation.Y, rep(TRUE, length(validation.Y)))["TRUE", "TRUE"] / length(validation.Y)
-```
-
-A naive predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`%. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`%.
+The model with the best k is then retrained with the data from both the test and validation set, this will more accurately reflect the out of sample error than if only the test set was used, because we will eventually train the model on the full sample of data to maximise its performance. The estimated out of sample performance of this model can be seen in the table below:
 
 ```{r}
 # Test Phase: retrain using both train and validation data before testing
@@ -163,7 +154,6 @@ testPerf <- data.frame(k = bestmodel$k,
 kable(testPerf)
 ```
 
-The model with the best k is then retrained with the data from both the test and validation set, this will more accurately reflect the out of sample error than if only the test set was used, because we will eventually train the model on the full sample of data to maximise its performance. The performance of this model can be seen in the table above.
 
 ```{r}
 # Final step, train using all data for future use
@@ -180,8 +170,16 @@ As a final step, we then train the model with the best k with all the data (trai
 
 ##How do you judge whether the classifier is well-suited for the data set?
 
-* From the graph we can see that for 5<k<80, the accuracy seems relatively constant, so the choice of k does not make a huge difference. This result is robust to different seeds, and therefore different test/validation sets, and implies that the selection of k may not have a huge impact on accuracy of predictio for future data points.
-* The estimated out of sample error is `r round(bestmodel$accuracy,2)*100`%, compared with `r round(naiveacc,2)*100`% for the naive estimator, even though this is a definite uplift, it is still not a highly accurate predictor.
+
+```{r}
+# Naive predictor accuracy (for benchmark)
+naiveprob <- sum(train.Y) / length(train.Y) # TRUE is the dominant class in training set
+# Accuracy, from the Confusion Matrix of naive predictor (always predict true)
+naiveacc <- table(validation.Y, rep(TRUE, length(validation.Y)))["TRUE", "TRUE"] / length(validation.Y)
+```
+
+* From the graph we can see that for 5<k<80, the accuracy seems relatively constant, so the choice of k does not make a huge difference. This result is robust to different seeds, and therefore different test/validation sets, and implies that the selection of k may not have a huge impact on accuracy of prediction for future data points.
+* A naive predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`%. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`%. The estimated out of sample error for the best k is `r round(bestmodel$accuracy,2)*100`%, even though this is a definite uplift, it is still not a highly accurate predictor.
 * Our classifier is more sensitive (predicting true positives given a true result), than it is specific (predicted true negatives given a false result), with specificity decreasing with k, so if it were true negatives that we were more interested in, we may want to choose a lower k.
 
 ```{r fig.height=3}
