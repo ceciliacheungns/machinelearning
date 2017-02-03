@@ -134,6 +134,7 @@ ggplot(dataforplot1, aes(x=k, y=accuracy, col=data)) + geom_line() + scale_x_rev
 
 Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing models. If detecting true positives were more important, we would have used sensitivity and if true negatives were more important we would have used specificity. We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$accuracy,2)*100`% on the validation set.
 
+
 The model with the best k is then retrained with the data from both the training and validation set, this will more accurately reflect the out of sample error than if only the training set was used, because we will eventually train the model on the full sample of data to maximise its performance. The estimated out of sample performance of this model (estimated using test set) can be seen in the table below:
 
 ```{r}
