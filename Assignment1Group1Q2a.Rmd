@@ -132,9 +132,9 @@ ggplot(dataforplot1, aes(x=k, y=accuracy, col=data)) + geom_line() + scale_x_rev
 ##to include a dot for best k
 ```
 
-Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing moedls. If true negatives were more important, we would have used sensitivity and if true positives were more important we would have used specificity. We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$accuracy,2)*100`% on the validation set.
+Assuming that true positives and true negatives are equally weighted in this case, we use accuracy as the measure for comparing models. If detecting true positives were more important, we would have used sensitivity and if true negatives were more important we would have used specificity. We can see that using this measure, the best k is `r bestmodel$k`, with an accuracy of approximately `r round(bestmodel$accuracy,2)*100`% on the validation set.
 
-The model with the best k is then retrained with the data from both the test and validation set, this will more accurately reflect the out of sample error than if only the test set was used, because we will eventually train the model on the full sample of data to maximise its performance. The estimated out of sample performance of this model can be seen in the table below:
+The model with the best k is then retrained with the data from both the training and validation set, this will more accurately reflect the out of sample error than if only the training set was used, because we will eventually train the model on the full sample of data to maximise its performance. The estimated out of sample performance of this model (estimated using test set) can be seen in the table below:
 
 ```{r}
 # Test Phase: retrain using both train and validation data before testing
@@ -144,16 +144,28 @@ knn.pred.test <- knn(train = trainValid.X.zScore,
                      k = bestmodel$k)
 
 # Confusion Matrix - Generalisation Error
-testPerf <- table(test.Y, knn.pred.test)
-numTP <- testPerf["TRUE", "TRUE"]
-numTN <- testPerf["FALSE", "FALSE"]
+testTable <- table(test.Y, knn.pred.test)
+numTP <- testTable["TRUE", "TRUE"]
+numTN <- testTable["FALSE", "FALSE"]
 testPerf <- data.frame(k = bestmodel$k, 
                        accuracy = (numTP + numTN) / length(test.Y), 
-                       sensitivity = numTP / (numTP + testPerf["TRUE", "FALSE"]), 
-                       specificity = numTN / (numTN + testPerf["FALSE", "TRUE"]))
-kable(testPerf)
+                       sensitivity = numTP / (numTP + testTable["TRUE", "FALSE"]), 
+                       specificity = numTN / (numTN + testTable["FALSE", "TRUE"]))
+kable(testPerf, caption = "Generalisation Error")
+
 ```
 
+The generalisation error can also be represented using estimation misclassification rate (i.e. 1 - accuracy): `r (1 - testPerf$accuracy)`
+
+The confusion matrix of the test result is shown below:
+
+```{r ConfusionMatrix}
+# Output Confusion Matrix
+confMat <- data.frame(Predicted.Good = c(testTable["TRUE", "TRUE"], testTable["FALSE", "TRUE"]), 
+                      Predicted.Bad = c(testTable["TRUE", "FALSE"], testTable["FALSE", "FALSE"]))
+rownames(confMat) <- c("ActualGood", "ActualBad")
+kable(confMat, caption = "Confusion Matrix")
+```
 
 ```{r}
 # Final step, train using all data for future use
@@ -175,11 +187,11 @@ As a final step, we then train the model with the best k with all the data (trai
 # Naive predictor accuracy (for benchmark)
 naiveprob <- sum(train.Y) / length(train.Y) # TRUE is the dominant class in training set
 # Accuracy, from the Confusion Matrix of naive predictor (always predict true)
-naiveacc <- table(validation.Y, rep(TRUE, length(validation.Y)))["TRUE", "TRUE"] / length(validation.Y)
+naiveacc <- table(test.Y, rep(TRUE, length(test.Y)))["TRUE", "TRUE"] / length(test.Y)
 ```
 
 * From the graph we can see that for 5<k<80, the accuracy seems relatively constant, so the choice of k does not make a huge difference. This result is robust to different seeds, and therefore different test/validation sets, and implies that the selection of k may not have a huge impact on accuracy of prediction for future data points.
-* A naive predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`%. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`%. The estimated out of sample error for the best k is `r round(bestmodel$accuracy,2)*100`%, even though this is a definite uplift, it is still not a highly accurate predictor.
+* A naive (majority-based) predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`% in the training set. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`% (estimated using test set). The estimated out of sample error for our kNN classifier, using the best k, is `r round(testPerf$accuracy,2)*100`% (in terms of accuracy), even though this is a definite uplift, it is still not a highly accurate predictor.
 * Our classifier is more sensitive (predicting true positives given a true result), than it is specific (predicted true negatives given a false result), with specificity decreasing with k, so if it were true negatives that we were more interested in, we may want to choose a lower k.
 
 ```{r fig.height=3}
