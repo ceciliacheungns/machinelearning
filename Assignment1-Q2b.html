@@ -13671,8 +13671,8 @@ hJmZmdX2P1bj9A3aBBsUAAAAAElFTkSuQmCC
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h5 id="How-do-you-judge-whether-the-classifier-is-well-suited-for-the-data-set?">How do you judge whether the classifier is well-suited for the data set?<a class="anchor-link" href="#How-do-you-judge-whether-the-classifier-is-well-suited-for-the-data-set?">&#182;</a></h5><p>In this Python exercise we have similar observations with the R exercise (Q2a):</p>
-<h6 id="Selection-of-K-value-for-K-Nearest-Neighbours">Selection of K-value for K-Nearest Neighbours<a class="anchor-link" href="#Selection-of-K-value-for-K-Nearest-Neighbours">&#182;</a></h6><p>From the earlier kNN classifier evaluation graph, we can observe that a large range of K-values produce similar misclassification performance. Hence the selection of K, within this range, may not have huge impact on accuracy of
-prediction for future data points.</p>
+<h6 id="Selection-of-K-value-for-K-Nearest-Neighbours">Selection of K-value for K-Nearest Neighbours<a class="anchor-link" href="#Selection-of-K-value-for-K-Nearest-Neighbours">&#182;</a></h6><p>From the earlier kNN classifier evaluation graph, we can observe that a large range of K-values produce similar validation performance. A different seed value (used in shuffling and splitting the train and test data) generally leads to a different optimal K-value, and a similar validation performance variations (with large number of K-values producing similar validation performance).</p>
+<p>Hence the selection of K, within this broad range, may not have huge impact on accuracy of prediction for future data points.</p>
 <h6 id="Comparison-to-Benchmark-Classifier">Comparison to Benchmark Classifier<a class="anchor-link" href="#Comparison-to-Benchmark-Classifier">&#182;</a></h6><p>A naive majority-based classifier can be used as benchmark. This classifier would classify all wines as good wines if the proportion of good wines is higher than the proportion of bad wines within the training set (otherwise, classify all wines as bad wines). The estimated accuracy of this naive predictor is as below:</p>
 
 </div>
@@ -13716,9 +13716,10 @@ prediction for future data points.</p>
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Our kNN classifier achieves much better accuracy than this benchmark. However, an accuracy of around 70% is still not highly accurate classifier.</p>
+<p>Our kNN classifier achieves much better accuracy than this benchmark. However, with an accuracy of around 70%, it is still not a highly accurate classifier.</p>
 <h6 id="Consideration-of-Other-Performance-Measure">Consideration of Other Performance Measure<a class="anchor-link" href="#Consideration-of-Other-Performance-Measure">&#182;</a></h6><p>In this exercise, we use accuracy as the performance measure. Depending on the application, other performance measures could be used. In the situation where we would like to detect as many true negatives as possible, specificity would be a better performance measure to use.</p>
 <p>The kNN classifier we selected, has an estimated specificity of around 66%. This could be potentially improved if we were to select the model based on specificity performance, during the 5-fold cross validation phase.</p>
+<h6 id="Non-Parametric-Approach-of-k-NN">Non-Parametric Approach of k-NN<a class="anchor-link" href="#Non-Parametric-Approach-of-k-NN">&#182;</a></h6><p>K-NN classifier adopts a non-parametric approach and hence the model can not be interpreted. It doesn't provide insights on the learned mechanisms. Consequently, we can't draw statistical inference on how the outcome variable (good or bad wine) depends on the inputs (e.g. sugar contents, acidity). For example, by how much does sugar contents influence the likelihood of a wine being high quality?</p>
 
 </div>
 </div>
