@@ -191,14 +191,15 @@ naiveprob <- sum(train.Y) / length(train.Y) # TRUE is the dominant class in trai
 naiveacc <- table(test.Y, rep(TRUE, length(test.Y)))["TRUE", "TRUE"] / length(test.Y)
 ```
 
-* From the graph we can see that for 5<k<80, the accuracy seems relatively constant, so the choice of k does not make a huge difference. This result is robust to different seeds, and therefore different test/validation sets, and implies that the selection of k may not have a huge impact on accuracy of prediction for future data points.
-* A naive (majority-based) predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`% in the training set. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`% (estimated using test set). The estimated out of sample error for our kNN classifier, using the best k, is `r round(testPerf$accuracy,2)*100`% (in terms of accuracy), even though this is a definite uplift, it is still not a highly accurate predictor.
-* Our classifier is more sensitive (predicting true positives given a true result), than it is specific (predicted true negatives given a false result), with specificity decreasing with k, so if it were true negatives that we were more interested in, we may want to choose a lower k.
+* From the graph we can see that for 5 < k < 80, the accuracy seems relatively constant, so the choice of k does not make a huge difference. This result is robust to different seeds and therefore different test/validation sets. A different choice in seed generally leads to a different optimal k, and to a similarly flat line for 5 < k < 80. This implies that the selection of k may not have a huge impact on accuracy of prediction for future data points.
+* A naïve (majority-based) predictor would predict a good quality wine in all cases, because the proportion of wines of good quality is approximately `r round(naiveprob,2)*100`% in the training set. If this predictor was used, then it would have an accuracy of `r round(naiveacc,2)*100`% (estimated using test set). The estimated out of sample error for our knn classifier, using the best k, is `r round(testPerf$accuracy,2)*100`% (in terms of accuracy), even though this is a definite uplift, it is still not a highly accurate predictor.
+* Our classifier is more sensitive (predicting true positives given a true result), than it is specific (predicting true negatives given a false result), with specificity decreasing with k, so if it were true negatives that we were more interested in, we may want to choose a lower k.
+* The knn classifier is useful for prediction, but is not useful for inference, as it doesn't provide any insight on mechanisms or inputs that have an impact on the target value, i.e. it doesn't tell us what kind of impact the different properties have on what makes a wine of good quality.
 
 ```{r fig.height=3}
 ##merge validation and training performance data
 dataforplot2 <- melt(dataforplot1[dataforplot1$data=="validation", 1:4], id="k")
 
-ggplot(dataforplot2, aes(x=k, y=value, col=variable)) + geom_line() + ylab("accuracy") + scale_x_reverse() + labs(color="")
+ggplot(dataforplot2, aes(x=k, y=value, col=variable)) + geom_line() + ylab("percentage") + scale_x_reverse() + labs(color="")
 ##to include a dot for best k
 ```
