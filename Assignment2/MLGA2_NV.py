@@ -118,6 +118,17 @@ NBtrain2.score(messages, labels) # 0.973999
 # The train2 classifier gives us more false positives than the train classifier.
 # The train classifier gives us more false negatives than the train2 classifiers.
 
+# Question 8
+# The 'train2' classifier is faster because 'prob1 * 20 < prob2' limits the number of keywords used to identify the type
+# of message. These are the 'key spam words'. The higher accuracy follows from this, because we now only look at more 
+# promiment words to classify a message.
+
+# Question 9
+# I got 3 false positives using train2. In order to reduce the number of false positives, I would lower the threshold
+# set in 'posteriors[0] > 0.5' within the predict function. This would result in messages having a higher chance of classifying
+# messages as ham and having more false negatives. For example, a threshold of 0.1 would increase the number of false negatives
+# from 23 to 25 and reduce the number of false positives from 3 to 2 (very small changes).
+
 # Question 10 - Performance of train2 classifier on the test set
 testmessages = test['text']
 testlabels = test['type']
