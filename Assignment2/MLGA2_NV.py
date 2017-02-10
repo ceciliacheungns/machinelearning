@@ -105,15 +105,24 @@ NBtrain2.train2(hamMessages,spamMessages)
 # Question 7 - Performance of each classifier on the validation set
 NBtrain.score(messages, labels) # 0.964999
 # Confusion Matrix:
-#[ 854, 13]
+# [854, 13]
 # [22, 111]
 
 NBtrain2.score(messages, labels) # 0.973999
 # Confusion Matrix:
-#[ 873, 23]
+# [873, 23]
 # [3, 101]
 
 # There is an improvement in accuracy which the train2 classifier is used on the validation set.
 # The train classifier has less true positives and true negatives than the train2 classifier.
 # The train2 classifier gives us more false positives than the train classifier.
 # The train classifier gives us more false negatives than the train2 classifiers.
+
+# Question 10 - Performance of train2 classifier on the test set
+testmessages = test['text']
+testlabels = test['type']
+NBtrain2.score(testmessages, testlabels)
+# Accuracy = 0.971%
+# Confusion Matrix:
+# [1771, 53]
+# [7, 240]
