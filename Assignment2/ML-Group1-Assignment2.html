@@ -3,7 +3,7 @@
 <head><meta charset="utf-8" />
 <title>ML-Group1-Assignment2</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<script type="text/javascript" src="http://gc.kis.scr.kaspersky-labs.com/70A07F27-DFB7-A94F-B1E9-E3EBEAF48036/main.js" charset="UTF-8"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 <style type="text/css">
@@ -11829,28 +11829,13 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">time</span>
-translator = str.maketrans(string.ascii_uppercase, 
-                           string.ascii_lowercase, 
-                           string.punctuation + string.digits + &#39;£&#39;)
-data[&#39;Clear Message&#39;] = data[&#39;Message&#39;].str.translate(translator)
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">translator</span> <span class="o">=</span> <span class="nb">str</span><span class="o">.</span><span class="n">maketrans</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">,</span> 
+                           <span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span><span class="p">,</span> 
+                           <span class="n">string</span><span class="o">.</span><span class="n">punctuation</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span> <span class="o">+</span> <span class="s1">&#39;£&#39;</span><span class="p">)</span>
+<span class="n">data</span><span class="p">[</span><span class="s1">&#39;Clear Message&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Message&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">translator</span><span class="p">)</span>
 </pre></div>
 
 </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area"><div class="prompt"></div>
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 20.5 ms
-</pre>
-</div>
-</div>
-
 </div>
 </div>
 
@@ -11978,17 +11963,17 @@ data[&#39;Clear Message&#39;] = data[&#39;Message&#39;].str.translate(translator
 <p>The functions used in <code>class NaiveBayesForSpam</code> are:</p>
 <h4 id="train()"><code>train()</code><a class="anchor-link" href="#train()">&#182;</a></h4><p>The input arguments of <code>train()</code> function are two lists of strings: <code>hamMessages</code> and <code>spamMessages</code> containing the ham messages and spam messages, respectively.</p>
 <p>It first merges these two lists and creates a set of all the unique words contained in any of the messages (regardless of whether the message is ham or spam). Next, it derives the two prior probabilites $P(ham)$ and $P(spam)$ by computing the proportion of ham and spam messages. The prior probabilities are stored in a list of length 2, named <code>priors</code>.</p>
-<p>After that, for each word $W$ in the set of words, the function calculates the likelihood of each word of being in ham or spam message, i.e. $P(W \mid ham)$ and $P(W \mid spam)$ for each $W$. 1 is added to the number of occurrences of each word in ham and spam emails to avoid having probabilities equal to zero (Laplace estimator). Finally, it caps the values of the calculated probabilities at 0.95 by replacing probabilities larger than this value with 0.95. The result is stored in the list <code>likelihoods</code> of length equal to the number of unique words.</p>
+<p>After that, for each word $W$ in the set of words, the function calculates the likelihood of each word of being in ham or spam message, i.e. $P(W \mid ham)$ and $P(W \mid spam)$ for each $W$. 1 is added to the number of occurrences of each word in ham and spam emails to avoid having probabilities equal to zero (Laplace estimator).</p>
+<p>Finally, it caps the values of the calculated probabilities at 0.95 by replacing probabilities larger than this value with 0.95. This is to prevent the negations (i.e. $P(\neg W \mid ham)$ and $P(\neg W \mid spam)$) from being zero. The result is stored in the list <code>likelihoods</code> of length equal to the number of unique words.</p>
 <h4 id="train2()"><code>train2()</code><a class="anchor-link" href="#train2()">&#182;</a></h4><p>The <code>train2()</code> function takes the same input arguments as function <code>train()</code> and has the same purpose. The only difference is that it only stores the spam keywords. Spam keywords are those words which have a probability of being in spam messages at least 20 times higher than a probability of encountered in ham messages, i.e. $20 \times P(W \mid ham) < P(W \mid spam)$. Again, it caps the likelihood values of these words at 0.95 by replacing probabilities larger than this value with 0.95. The final list of predictor words only consists of these spam keywords.</p>
-<h4 id="predict()"><code>predict()</code><a class="anchor-link" href="#predict()">&#182;</a></h4><p>The <code>predict()</code> function takes a single string as input argument, <code>message</code>, which represents a new SMS message that needs to be classified as ham or spam. First, it makes a copy of the prior probabilities $P(ham)$ and $P(spam)$, named <code>posteriors</code>, which will be used to calculate the posterior probabilities of the new message being ham or spam. According to Bayes' Theorem:</p>
+<h4 id="predict()"><code>predict()</code><a class="anchor-link" href="#predict()">&#182;</a></h4><p>The <code>predict()</code> function takes a single string as input argument, <code>message</code>, which represents a new SMS message that needs to be classified as ham or spam. First, it copies the values of the two prior probabilities $P(ham)$ and $P(spam)$, into the array named <code>posteriors</code>, which will be used to calculate the posterior probabilities of the new message being ham or spam. According to Bayes' Theorem:</p>
 $$P(ham \mid message) \propto P(messagen \mid ham) \times P(ham)$$<p>and
 $$P(spam \mid message) \propto P(messagen \mid spam) \times P(spam)$$</p>
-<p>where 
-$$P(message \mid ham) = P(W_1 \mid ham) \times P(W_2 \mid ham) \times \cdots \times P(W_n \mid ham)$$</p>
-<p>and
+<p>where the Naive Bayes classifiers assume class-conditional independence and hence:</p>
+$$P(message \mid ham) = P(W_1 \mid ham) \times P(W_2 \mid ham) \times \cdots \times P(W_n \mid ham)$$<p>and
 $$P(message \mid spam) = P(W_1 \mid spam) \times P(W_2 \mid spam) \times \cdots \times P(W_n \mid spam)$$</p>
 <p>if the message contains all the words $W_1, W_2, ..., W_n$. For the words $W_i$ that are not contained in the message $P(W_i \mid ham)$ are to be replaced as $P(\neg W_i \mid ham) = 1 - P(W_i \mid ham)$ and $P(W_i \mid spam)$ are to be replaced as $P(\neg W_i \mid spam) = 1 - P(W_i \mid spam)$.</p>
-<p>The function does this Right Hand Side computation of Bayes' Theorem formula. It initialises using the two prior probabilities $P(ham)$ and $P(spam)$. Then it iterates through all the words we have in our classifier and checks whether each word $W_i$ exists in the new message or not. If so, it multiplies probabilities with $P(W_i \mid ham)$ and $P(W_i \mid spam)$ respectively. Otherwise it multiplies them with $P(\neg W_i \mid ham) = 1 - P(ham \mid W_i)$ and $P(\neg W_i \mid spam) = 1 - P(spam \mid W_i)$, respectively. After each multiplication, the function performs a normalisation step so that the two probabilities sum to one. This is to prevent having very small values in the posterior probabilities (which may lead to numerical issues for computers. After all the multiplications and final normalisation, the final values calculated are the posterior probabilities, $P(ham \mid message)$ and $P(spam \mid message)$.</p>
+<p>The function does this Right Hand Side computation of Bayes' Theorem formula. It initialises using the two prior probabilities $P(ham)$ and $P(spam)$. Then it iterates through all the words we have in our classifier and checks whether each word $W_i$ exists in the new message or not. If so, it multiplies the two probabilities with $P(W_i \mid ham)$ and $P(W_i \mid spam)$ respectively. Otherwise it multiplies them with $P(\neg W_i \mid ham) = 1 - P(ham \mid W_i)$ and $P(\neg W_i \mid spam) = 1 - P(spam \mid W_i)$, respectively. After each multiplication, the function performs a normalisation step so that the two probabilities sum to one. This is to prevent having very small values in the posterior probabilities (which may lead to numerical issues for computers). After all the multiplications and final normalisation, the final values calculated are the posterior probabilities, $P(ham \mid message)$ and $P(spam \mid message)$.</p>
 <p>If the posterior probability of being a ham, $P(ham \mid message)$ is greater than 0.5, the function classifies the new message as ham. Otherwise, it classifies it as spam. Both the predicted class and the posterior probability (of the predicted class) are returned.</p>
 <h4 id="score()"><code>score()</code><a class="anchor-link" href="#score()">&#182;</a></h4><p>The input arguments of the <code>score()</code> function are two lists of strings, <code>messages</code> which contain the messages which we would like to classify and <code>labels</code> which contains the true labels of the messages.</p>
 <p>Firstly, it first creates a $2 \times 2$ matrix of zeros, which constitutes the confusion matrix. It makes use the <code>predict</code> function to make predictions on the classification of each messages. Finally, it compares the prediction against the true label in order to update the values in the confusion matrix:</p>
@@ -11998,9 +11983,9 @@ $$P(message \mid spam) = P(W_1 \mid spam) \times P(W_2 \mid spam) \times \cdots 
 <li>$predicted = spam$ and $actual = ham$: Increase <strong><em>False Positives</em></strong> (<strong><em>FP</em></strong>) by 1 (bottom left hand corner of the matrix)</li>
 <li>$predicted = spam$ and $actual = spam$: Increase <strong><em>True Positives</em></strong> (<strong><em>TP</em></strong>) by 1 (bottom right hand corner of the matrix)</li>
 </ul>
-<p>Note that for this confusion matrix, the columns indicate the true labels while the rows represent the predicted classes. As a result, the positions of the respective element differ (the locations of <strong>TN, TP, FN, FP</strong> are described in the above bulleted points).</p>
+<p>Note that for this confusion matrix, the columns indicate the true labels while the rows represent the predicted classes. The locations of <strong>TN, TP, FN, FP</strong> are described in the above bulleted points.</p>
 <p>Finally, the function returns both the confusion matrix and the accuracy of the model, which is calculated as</p>
-$$accuracy = \frac{TN + TP}{TN + FN + FP + TP}$$<h4 id="Where-is-Bayes'-Theorem-Applied?"><strong>Where is Bayes' Theorem Applied?</strong><a class="anchor-link" href="#Where-is-Bayes'-Theorem-Applied?">&#182;</a></h4><p>Bayes' Theorem is applied in the predict() function, where the posterior probabilities (of ham or spam) are calculated by multiplying prior probability with the likelihood of different words (being in ham or spam message respectively). The final step of normalising the two posterior probabilities so that they sum to one is akin to dividing the two values by marginal likelihood, so that the final calculated values are posterior probabilities (where the sum of two posterior probabilities is one).</p>
+$$accuracy = \frac{TN + TP}{TN + FN + FP + TP}$$<h4 id="Where-is-Bayes'-Theorem-Applied?"><strong>Where is Bayes' Theorem Applied?</strong><a class="anchor-link" href="#Where-is-Bayes'-Theorem-Applied?">&#182;</a></h4><p>Bayes' Theorem is applied in the predict() function, where the posterior probabilities (of ham or spam) are calculated by multiplying prior probability with the likelihoods of different words in ham or spam message respectively. The final step of normalising the two posterior probabilities so that they sum to one is akin to dividing the two values by marginal likelihood, so that the final calculated values are posterior probabilities (where the sum of two posterior probabilities is one).</p>
 
 </div>
 </div>
@@ -12044,7 +12029,7 @@ $$accuracy = \frac{TN + TP}{TN + FN + FP + TP}$$<h4 id="Where-is-Bayes'-Theorem-
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><strong>7.</strong> After training the two classifiers, we how each performs out of sample by using the validation set.</p>
+<p><strong>7.</strong> After training the two Naive Bayes classifiers, we examine how each classifier performs out of sample by using the validation set.</p>
 
 </div>
 </div>
@@ -12088,7 +12073,7 @@ acc_train_1, cm_train_1 = NB_1.score(train_messages, train_labels)
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 3min 49s
+<pre>Wall time: 3min 52s
 </pre>
 </div>
 </div>
@@ -12117,7 +12102,7 @@ acc_validation_1, cm_validation_1 = NB_1.score(validation_messages, validation_l
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 1min 31s
+<pre>Wall time: 1min 34s
 </pre>
 </div>
 </div>
@@ -12146,7 +12131,7 @@ acc_train_2, cm_train_2 = NB_2.score(train_messages, train_labels)
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 9.16 s
+<pre>Wall time: 9.47 s
 </pre>
 </div>
 </div>
@@ -12175,7 +12160,7 @@ acc_validation_2, cm_validation_2 = NB_2.score(validation_messages, validation_l
 
 <div class="output_area"><div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Wall time: 3.72 s
+<pre>Wall time: 3.78 s
 </pre>
 </div>
 </div>
@@ -12269,10 +12254,20 @@ Validation set: 0.967
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><strong>8.</strong> Execution Time and Accuracy of <code>train2()</code></p>
+<p>For the out-of-sample performance, refer to the above accuracies pertaining to the validation set. As we can observe, <strong>NB_2</strong> classifier has slight improvement of accuracy over <strong>NB_1</strong>.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><strong>8.</strong> Execution Time and Accuracy of <code>train2()</code> Naive Bayes Classifier</p>
 <p>After using the two classifiers on both the training and the validation set, we will evaluate them both on their execution time and their accuracy.</p>
-<h4 id="Execution-Time">Execution Time<a class="anchor-link" href="#Execution-Time">&#182;</a></h4><p>The execution time of the <code>score()</code> function by <strong>NB_1</strong> classifier (which is trained using the <code>train()</code> function) is roughly <strong>00:03:49</strong> for the training set of 2,500 messages and <strong>00:01:31</strong> for the validation set of 1,000 messages. For <strong>NB_2</strong> classifier (which is trained using <code>train2()</code> function), the execution time is almost <strong>00:00:09</strong> for the training set and approximately <strong>00:00:04</strong> for the validation set. We see that <strong>NB_2</strong> classifier (or <code>train2()</code> classifier) requires significantly less time to be executed than <code>train()</code> classifier does.</p>
-<p>This difference in execution times is expected. For the <strong>NB_2</strong> classifier (or <code>train2()</code> classifier), the likelihoods we used to calculate the posterior probabilities (of a new message being ham or spam) are only those whose probabilities satisfy the inequality $20 \times P(W \mid ham) < P(W \mid spam)$, which are far less that the total number of words. We can easily see this from the below:</p>
+<h4 id="Execution-Time">Execution Time<a class="anchor-link" href="#Execution-Time">&#182;</a></h4><p>The execution time of the <code>score()</code> function by <strong>NB_1</strong> classifier (which is trained using the <code>train()</code> function) is roughly <strong>00:03:52</strong> for the training set of 2,500 messages and <strong>00:01:34</strong> for the validation set of 1,000 messages. For <strong>NB_2</strong> classifier (which is trained using <code>train2()</code> function), the execution time is almost <strong>00:00:09</strong> for the training set and approximately <strong>00:00:04</strong> for the validation set. We see that <strong>NB_2</strong> classifier (or <code>train2()</code> classifier) requires significantly less time to be executed than <code>train()</code> classifier does.</p>
+<p>This difference in execution times is expected. For the <strong>NB_2</strong> classifier (or <code>train2()</code> classifier), the likelihoods we used to calculate the posterior probabilities (of a new message being ham or spam) are only tho who satisfy the inequality $20 \times P(W \mid ham) < P(W \mid spam)$, which are far less that the total number of words. We can easily see this from the below:</p>
 
 </div>
 </div>
@@ -12312,7 +12307,7 @@ Number of predictor words for NB_2 classifier (train2() classifier):  231
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>As we can observe, the number of predictor words used in <strong>NB_2</strong> classifier (or <code>train2()</code> classifier) is a lot less. As a result, there are a lot less multiplications to perform. Therefore, <strong>NB_2</strong> classifier is a lot faster in the classification phase.</p>
-<h4 id="Accuracy">Accuracy<a class="anchor-link" href="#Accuracy">&#182;</a></h4><p>From the above results, we can observe that <strong>NB_2</strong> classifier (or <code>train2()</code> classifier) has higher accuracy in both training and validation sets. As discussed, the <code>train2()</code> classifier only uses the spam keywords (word whose probability of appearing in spam messages is more than 20 times higher than the probability of appearing in ham messages). This has two effects in the predictions of new messages:</p>
+<h4 id="Accuracy">Accuracy<a class="anchor-link" href="#Accuracy">&#182;</a></h4><p>From the results in section 7, we can observe that <strong>NB_2</strong> classifier (or <code>train2()</code> classifier) has higher accuracy in both training and validation sets. As discussed, the <code>train2()</code> classifier only uses the spam keywords (word whose probability of appearing in spam messages is more than 20 times higher than the probability of appearing in ham messages). This has two effects in the predictions of new messages:</p>
 <ol>
 <li><p><strong>Removal of predictor words with very low predictive power</strong><br>
 The <code>train2()</code> classifier discards the predictor words where the two likelihoods $P(W \mid ham)$ and $P(W \mid spam)$ have very similar value. These can include stopwords (such as 'the', 'a', 'for') which are almost equally likely to be in both types of messages. The appearance (or non-appearance) of these words in the new message does not tell us whether the message is likely to be ham or spam. Thus, the removal of those predictor words can potentially reduce our classification error.</p>
@@ -12605,7 +12600,7 @@ The <code>train2()</code> classifier also discards all the ham keywords and some
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Above is the confusion matrix of <code>train2()</code> classifier on training set. Compared to <code>train()</code> classifier.</p>
+<p>Above is the confusion matrix of <code>train2()</code> classifier on validation set.</p>
 <p>We can observe similar behaviour exhibited in the training set. The increase in True Negatives more than offsets the decrease in True Positives, therefore train2() classifier achieves higher accuracy in the validation set.</p>
 
 </div>
@@ -12616,7 +12611,7 @@ The <code>train2()</code> classifier also discards all the ham keywords and some
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><strong>9.</strong> Number False Positives and Way to Reduce It</p>
+<p><strong>9.</strong> Number of False Positives and Way to Reduce It</p>
 <p>We will use the confusion matrix to examine classification results. We shall focus on the number of false positives (ham messages classified as spam  messages) and false negatives (spam messages classified as ham messages).</p>
 
 </div>
@@ -12789,7 +12784,7 @@ The <code>train2()</code> classifier also discards all the ham keywords and some
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><strong>10.</strong> Test Set Performance</p>
-<p>Between the two classifiers, we see that the <code>train2()</code> classifier has higher accuracy. Thus, we will choose this classifier and proceed to estimate its performance using the test set. Before doing so, we will train classifier <code>train2()</code> on both the training and the validation set. By retraining the model using both training and validation set, the future performance can be more accurately estimated (compared to the scenario where only the training set is used), because we will eventually train the model on the full sample of data to maximise its performance.</p>
+<p>Between the two classifiers, we see that the <code>train2()</code> classifier has higher accuracy. Thus, we will choose this classifier and proceed to estimate its performance using the test set. Before doing so, we will train the <code>train2()</code> classifier on both the training and the validation set. By retraining the model using both training and validation set, the future performance can be more accurately estimated (compared to the scenario where only the training set is used), because we will eventually train the model on the full sample of data to maximise its performance.</p>
 
 </div>
 </div>
@@ -12836,8 +12831,8 @@ The <code>train2()</code> classifier also discards all the ham keywords and some
 <span class="n">acc_test_2</span><span class="p">,</span> <span class="n">cm_test_2</span> <span class="o">=</span> <span class="n">NB_3</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">test_messages</span><span class="p">,</span> <span class="n">test_labels</span><span class="p">)</span>
 
 <span class="n">cm2_t</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_items</span><span class="p">([(</span><span class="s2">&quot;ham&quot;</span><span class="p">,</span> <span class="n">cm_test_2</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> \
-                               <span class="p">(</span><span class="s2">&quot;spam&quot;</span><span class="p">,</span> <span class="n">cm_test_2</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span> \
-                              <span class="n">orient</span> <span class="o">=</span> <span class="s2">&quot;index&quot;</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ham&quot;</span><span class="p">,</span> <span class="s2">&quot;spam&quot;</span><span class="p">])</span>
+                                 <span class="p">(</span><span class="s2">&quot;spam&quot;</span><span class="p">,</span> <span class="n">cm_test_2</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span> \
+                                <span class="n">orient</span> <span class="o">=</span> <span class="s2">&quot;index&quot;</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ham&quot;</span><span class="p">,</span> <span class="s2">&quot;spam&quot;</span><span class="p">])</span>
 <span class="n">cm2_t</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cm2_t</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Actual values&quot;</span><span class="p">,</span> <span class="s2">&quot;Predicted values&quot;</span>
 <span class="n">cm2_t</span>
 </pre></div>
