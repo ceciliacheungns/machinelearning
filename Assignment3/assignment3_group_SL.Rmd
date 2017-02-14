@@ -1,0 +1,133 @@
+---
+title: Assignment 3 
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+library("C50")
+library("caret")
+```
+
+1. Import the data and shuffle and split it into a training set (20,000 records), a validation set (8,000 records), and a test set (remaining records).
+
+```{r loadData, echo=FALSE}
+data <- read.csv('Loan_processed.csv')
+
+# shuffle 
+data <- data[sample(nrow(data)),]
+
+# split
+trainSplit <- sample(nrow(data), 20000)
+train <- data[trainSplit, ]
+
+rest <- data[-trainSplit, ]
+
+validationSplit <- sample(nrow(rest), 8000)
+validation <- rest[validationSplit, ]
+test <- rest[-validationSplit, ]
+```
+
+2. Using a classification tree, try to predict with an accuracy greater than #repaid loans / (#repaid loans + #charged off loans) if a loan will be repaid. 
+
+```{r target, echo=FALSE}
+target <- nrow(data[data$loan_status == "Fully Paid", ]) / 
+  (nrow(data[data$loan_status == "Fully Paid", ]) + nrow(data[data$loan_status == "Charged Off", ]))
+# 0.8595498
+```
+
+```{r}
+# fit tree model
+treeModel <- C5.0(x = train[, -8], y = train$loan_status)
+
+# make predictions on validation data
+predValidation <- predict(treeModel, validation[, -8])
+
+# confusion matrix for results on valiation set
+mTtrain <- confusionMatrix(predValidation, validation[, 8], positive = "Charged Off", 
+                dnn = c("Prediction", "Reference"))
+
+
+# make prediction on training data
+predTraining <- predict(treeModel, train[, -8])
+
+# confusion matrix for results on training set
+mTval <- confusionMatrix(predTraining, train[, 8], positive = "Charged Off", 
+                dnn = c("Prediction", "Reference"))
+
+# different way to calculate accuracy
+# sum(predValidation == validation[, 8]) / length(predValidation)
+
+```
+
+The accuracy on the training set is: 0.8584
+The accuracy on the validation set is: 0.8575
+The target accuracy is : 0.8595498
+
+```{r}
+# attempt to grow larger tree
+treeModel2 <- C5.0(x = train[, -8], y = train$loan_status, trials = 5)
+```
+
+3. Experiment with the cost matrix. To achieve sensitivities of 25%, 40%, 50%.
+
+In order to achieve this we have to increase to cost of predicting a "Charged Off" loans as "Fully Paid". 
+
+```{r cost.matrix25}
+# cost matrix ~25%
+cost.matrix25 <- matrix(c(0, 0, 2.76, 0), 2, 2, byrow=TRUE)
+rownames(cost.matrix25) <- colnames(cost.matrix25) <- c("Charged Off",
+                                                    "Fully Paid")
+
+# model with cost matrix
+treeModelCM25 <- C5.0(x = train[, -8], y = train$loan_status, costs = cost.matrix25)
+
+# use model on validation set
+predValidationCost25 <- predict(treeModelCM25, validation[, -8])
+
+# confusion matrix for results on training set
+m25 <- confusionMatrix(predValidationCost25, validation[, 8], positive = "Charged Off", dnn = c("Prediction", "Reference"))
+m25$byClass[1]
+m25$byClass[5]
+m25$table
+```
+
+```{r cost.matrix40}
+# cost matrix ~40%
+cost.matrix40 <- matrix(c(0, 0, 3.73, 0), 2, 2, byrow=TRUE)
+rownames(cost.matrix40) <- colnames(cost.matrix40) <- c("Charged Off",
+                                                    "Fully Paid")
+
+# model with cost matrix
+treeModelCM40 <- C5.0(x = train[, -8], y = train$loan_status, costs = cost.matrix40)
+
+# use model on validation set
+predValidationCost40 <- predict(treeModelCM40, validation[, -8])
+
+# confusion matrix for results on training set
+m40 <- confusionMatrix(predValidationCost40, validation[, 8], positive = "Charged Off", dnn = c("Prediction", "Reference"))
+m40$byClass[1]
+m40$byClass[5]
+m40$table
+```
+
+```{r cost.matrix50}
+# cost matrix ~50%
+cost.matrix50 <- matrix(c(0, 0, 4.7, 0), 2, 2, byrow=TRUE)
+rownames(cost.matrix50) <- colnames(cost.matrix50) <- c("Charged Off",
+                                                    "Fully Paid")
+
+# model with cost matrix
+treeModelCM50 <- C5.0(x = train[, -8], y = train$loan_status, costs = cost.matrix50)
+
+# use model on validation set
+predValidationCost50 <- predict(treeModelCM50, validation[, -8])
+
+# confusion matrix for results on training set
+m50 <- confusionMatrix(predValidationCost50, validation[, 8], positive = "Charged Off", dnn = c("Prediction", "Reference"))
+m50$byClass[1]
+m50$byClass[5]
+m50$table
+```
+
+4. Pick a cost parameter matrix that you assess as the most appropriate for identifying loan applications that deserve further examination.
+
