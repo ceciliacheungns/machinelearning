@@ -1,0 +1,294 @@
+---
+title: "Machine Learning"
+subtitle: "Assignment 3, Group Assignment"
+author: "Group 1"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(gmodels)
+library(knitr)
+library(C50)
+library(reshape)
+library(ggplot2)
+library(ggthemes)
+
+knitr::opts_chunk$set(echo = FALSE)
+##set seed to ensure random processes run consistently
+set.seed(99)
+```
+
+## Q1: Import Pre-Processed Data and Splitting
+
+The loans data has been preprocessed using Python. We first read the `.csv` file which contains thepre-processed data with 8 columns in total, including the outcome of the loans, which can be either *"Charged off"* or *"Fully Paid"*.
+
+```{r}
+# Load the data file
+processedLoans <- read.csv("Loans_processed.csv")
+```
+
+Next, we split the data into: 
+
+* Training Set (20,000 records) 
+* Validation Set (8,000 records) 
+* Test Set (Remaining 10,697 records) 
+
+```{r}
+# Q1
+# Separate data into training (20,000 records), validation (8,000 records), and test (remaining records)
+
+inTrain <- sample.int(nrow(processedLoans), size = 20000)
+
+train <- processedLoans[inTrain, ]
+others <- processedLoans[-inTrain, ]
+
+inValidation <- sample.int(nrow(others), size = 8000)
+
+validation <- others[inValidation, ]
+test <- others[-inValidation, ]
+```
+
+## Q2: Classification Tree Using C50
+
+```{r}
+# Q2
+# CrossTable(processedLoans$loan_status, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, 
+#           dnn = c("Actual Status"))
+t <- table(processedLoans$loan_status)
+# number of repaid loans / number of total loans
+propRepaid <- nrow(processedLoans[processedLoans$loan_status == "Fully Paid", ]) / nrow(processedLoans)
+```
+
+The total number of loans in the data that fall each category is
+
+Table: Number of instances in each class
+
+| Charged Off | Fully Paid |
+|:-----------:|:----------:|
+| `r t[1]`    | `r t[2]`   |
+
+The proportion of repaid loans in the dataset is `r format(propRepaid, digits = 4)`. We will now try to achieve an accuracy greater than this using classification trees. We first train a decision tree based on the training set. 
+
+```{r}
+treeModel <- C5.0(x = subset(train, select = -loan_status), y = train$loan_status)
+#treeModel
+#summary(treeModel)
+
+# rows represent actual outcome, columns represent predicted outcome
+confTrain <- table(train$loan_status, predict(treeModel, subset(train, select = -loan_status)))
+```
+
+The confusion matrix of the training set for the classifier we trained is
+
+Table: Confusion Matrix for Training Set
+
+|*actual / predicted*| Charged Off | Fully Paid |
+|------------------|:-----------:|:----------:|
+| Charged Off      | `r confTrain[1]` | `r confTrain[3]` |
+| Fully Paid       | `r confTrain[2]` | `r confTrain[4]` |
+
+As observed, the classification tree classifies all training samples as *"Fully Paid"* and its accuracy is simply the proportion of *"Fully Paid"* loans in the training set. 
+
+We will now use the classifier to predict the outcome of each lean in the validation set.
+
+```{r}
+confMatDims <- list(c("Charged Off", "Fully Paid"), c("Charged Off", "Fully Paid"))
+
+confVal <- table(validation$loan_status, predict(treeModel, subset(validation, select = -loan_status)))
+#CrossTable(validation$loan_status, predict(treeModel, subset(validation, select = -loan_status)), 
+#           prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c("Actual Status", "Predicted Status"))
+
+```
+
+The resulting confusion matrix of the validation set for the classifier is
+
+Table: Confusion Matrix for Validation Set
+
+|*actual / predicted*| Charged Off    | Fully Paid     |
+|--------------------|:--------------:|:--------------:|
+| Charged Off        | `r confVal[1]` | `r confVal[3]` |
+| Fully Paid         | `r confVal[2]` | `r confVal[4]` |
+
+Again, all the validation records are predicted to be *"Fully Paid"*. Hence, its accuracy is the proportion of *"Fully Paid"* loans in the validation set.  
+
+The number of *"Fully Paid"* loans greatly outnumbers the number of *"Charged Off"* loans. Consequently, during the training phase, the algorithm discovers that doing a majority prediction using a single leaf node produces the best training accuracy. Splitting the tree using any of the seven features of the data will result in two child nodes with instances belonging primarily in the *"Fully Paid"* class. Consequently, the algorithm does not perform any split. Thus, the trained classification tree simply predicts all loans as *"Fully Paid"*.  
+
+The algorithm might end up with leaf nodes that might contain a majority of *"Charged Off"* loans after a significantly large number of splits. However, they myopic approach of classification trees prevents us from reaching that possible point.
+
+## Q3: C50 Classification Tree with Costs Adjustments  
+
+We will need to train the classification tree with a cost matrix to correct the default behaviour of `C50` in maximising the accuracy.  
+
+Granting a loan to a customer who is likely to default is much more costlier (i.e. False Negative) than denying loan to a customer who is likely able to pay back (i.e. False Positive). In the cost matrices, we set the cost of False Positive to $1$ to test out different values of the cost of False Negative (ranging from $2.8$ to $5.2$, in increment of $0.1$).  
+
+```{r}
+# Q3
+costsMatDims <- list(c("Charged Off", "Fully Paid"), c("Charged Off", "Fully Paid"))
+names(costsMatDims) <- c("predicted", "actual")
+
+costsMatList <- list()
+confMatList <- list()
+validationPerf <- data.frame(weight = NULL, sens = NULL, prec = NULL, spec = NULL, acc = NULL)
+for (i in seq(2.8, 5.2, by = 0.1)) {
+    
+    costsMat <- matrix(c(0, i, 1, 0), nrow = 2, dimnames = costsMatDims)
+    costsTree <- C5.0(x = subset(train, select = -loan_status), y = train$loan_status, costs = costsMat)
+    summary(costsTree)
+    costsTreeTable <- table(validation$loan_status, 
+                            predict(costsTree, subset(validation, select = -loan_status)))
+    dimnames(costsTreeTable) <- confMatDims
+    
+    costsMatList[[length(costsMatList) + 1]] <- costsMat
+    confMatList[[length(confMatList) + 1]] <- costsTreeTable
+    validationPerf <- rbind(validationPerf, 
+                            data.frame(weight = i, 
+                                       sens = costsTreeTable["Charged Off", "Charged Off"] / 
+                                           rowSums(costsTreeTable)["Charged Off"],
+                                       prec = costsTreeTable["Charged Off", "Charged Off"] / 
+                                           colSums(costsTreeTable)["Charged Off"],
+                                     # spec = costsTreeTable["Fully Paid", "Fully Paid"] / 
+                                     #     rowSums(costsTreeTable)["Fully Paid"], 
+                                       acc = sum(diag(costsTreeTable)) / sum(costsTreeTable)))
+    rownames(validationPerf) <- NULL
+    
+}
+
+kable(round(validationPerf, 4), 
+      caption = "Validation Performance Using Different Cost Matrices", 
+      col.names = c("False Negative Cost", "Sensitivity", 
+                    "Precision", "Accuracy"), align = "c")
+```
+
+From the previous table we observe that as the cost of False Negative increases, the overall accuracy and the precision of the classifier decreases while its sensitivity increases.
+
+```{r, fig.align="center", fig.height=3, fig.width=6}
+vPerf <- melt(validationPerf, id.vars = "weight")
+ggplot(vPerf) +
+    geom_line(aes(x = weight, y = value, color = variable)) +
+    geom_hline(yintercept = .25, linetype = 3, alpha = .5) +
+    geom_hline(yintercept =  .4, linetype = 3, alpha = .5) +
+    geom_hline(yintercept =  .5, linetype = 3, alpha = .5) +
+    theme_tufte() +
+    scale_color_manual(values = c("#E69F00", "#56B4E9", "black"), 
+                       name = "Performance\nMeasures",
+                       breaks = c("sens", "prec", "acc"),
+                       labels = c("Sensitivity", "Precision", "Accuracy")) +
+    labs(x = "False Negative Cost", y = "Percentage (%)") +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, .2), labels = seq(0, 1, .2) * 100)
+
+```
+
+The sensitivity levels we are interested in are 25%, 40% and 50%.  
+
+### 25% Sensitivity  
+
+The costs matrix which achieves sensitivity as close as possible to 25% is
+
+```{r}
+idx <- which.min(abs(validationPerf$sens - 0.25)) # The index with sensitivity closest to 0.5
+cm <- t(costsMatList[[idx]])
+```
+
+Table: Cost Matrix for 25% Sensitivity
+
+|*actual / predicted*| Charged Off | Fully Paid |
+|------------------|:-----------:|:----------:|
+| Charged Off      | `r cm[1]` | `r cm[3]` |
+| Fully Paid       | `r cm[2]` | `r cm[4]` |
+
+From the previous table, we can see that the specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
+
+### 40% Sensitivity  
+
+The costs matrix which achieves sensitivity as close as possible to 40% is
+
+```{r}
+idx <- which.min(abs(validationPerf$sens - 0.4)) # The index with sensitivity closest to 0.5
+cm <- t(costsMatList[[idx]])
+```
+
+Table: Cost Matrix for 40% Sensitivity
+
+|*actual / predicted*| Charged Off | Fully Paid |
+|------------------|:-----------:|:----------:|
+| Charged Off      | `r cm[1]` | `r cm[3]` |
+| Fully Paid       | `r cm[2]` | `r cm[4]` |
+
+From the previous table, we can see that the specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
+
+### 50% Sensitivity  
+
+The costs matrix which achieves sensitivity as close as possible to 50% is
+
+```{r}
+idx <- which.min(abs(validationPerf$sens - 0.5)) # The index with sensitivity closest to 0.5
+cm <- t(costsMatList[[idx]])
+```
+
+Table: Cost Matrix for 50% Sensitivity
+
+|*actual / predicted*| Charged Off | Fully Paid |
+|------------------|:-----------:|:----------:|
+| Charged Off      | `r cm[1]` | `r cm[3]` |
+| Fully Paid       | `r cm[2]` | `r cm[4]` |
+
+From the previous table, we can see that the specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
+
+## Q4: Cost Parameter Matrix for Identifying Dubious Loan Applications  
+
+To lower the credit risk, we will need to identify as many dubious loan applicants as possible. However, we can see in the earlier section, the precision is very low. This means that out of all those applications that are highlighted as risky, only around `r format(validationPerf$prec[idx] * 100, digits = 2)`% are indeed *"Charged Off"* in the validation set. The drawback in reaching a sensitivity level of close to 50% is that the loan officers will need to manually cross-check large number of applications before 50% of the risky loans are identified.  
+
+Nevertheless, the cost of granting a loan to risky applicants still far outweighs this labour cost. Hence we pick the cost matrix which achieves sensitivity close to 50%.  
+
+## Q5: Test Set Performance
+
+Using the cost matrix for 50% sensitivity, we retrain the classification tree using both training and validation data. The trained model is then tested against the test set. Below tabulates the test set performance and confusion matrix. 
+
+```{r, results="hide"}
+# Q4
+# Choose the costs matrix which yield sensitivity closest to 0.5
+idx <- which.min(abs(validationPerf$sens - 0.5)) # The index with sensitivity closest to 0.5
+
+# Q5
+# Retrain using training and validation set, and then test on test set
+trainValid <- rbind(train, validation)
+costsTree2 <- C5.0(x = subset(trainValid, select = -loan_status), 
+                   y = trainValid$loan_status, 
+                   costs = costsMatList[[idx]])
+#summary(costsTree2)
+costsTreeTable2 <- table(test$loan_status, 
+                         predict(costsTree2, 
+                                 subset(test, select = -loan_status)))
+dimnames(costsTreeTable2) <- confMatDims
+
+CT <- CrossTable(test$loan_status, predict(costsTree2, 
+                                           subset(test, select = -loan_status)), 
+                 prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, 
+                 dnn = c("Actual Status", "Predicted Status"))
+
+testPerf <- data.frame(weight = validationPerf$weight[idx], 
+                       sens = costsTreeTable2["Charged Off", "Charged Off"] / 
+                           rowSums(costsTreeTable2)["Charged Off"], 
+                       prec = costsTreeTable2["Charged Off", "Charged Off"] / 
+                           colSums(costsTreeTable2)["Charged Off"], 
+                     # spec = costsTreeTable2["Fully Paid", "Fully Paid"] / 
+                     #     rowSums(costsTreeTable2)["Fully Paid"], 
+                       acc = sum(diag(costsTreeTable2)) / sum(costsTreeTable2))
+```
+
+The final performance of the test set, using the cost matrix that previously resulted in 50% sensitivity, is 
+
+```{r}
+kable(round(testPerf[, 2:4], 4), caption = "Test Set Performance", col.names = c("Sensitivity", "Precision", "Accuracy"), row.names = FALSE)
+```
+
+The resulting cost matrix for the test set is
+
+Table: Confusion Matrix for Test Set
+
+|*actual / predicted*| Charged Off    | Fully Paid     |*Total*                    |
+|--------------------|:--------------:|:--------------:|:-------------------------:|
+| Charged Off        | `r CT[[1]][1]` | `r CT[[1]][3]` |*`r rowSums(CT[[1]])[[1]]`*|
+| Fully Paid         | `r CT[[1]][2]` | `r CT[[1]][4]` |*`r rowSums(CT[[1]])[[2]]`*|
+|*Total*             |*`r colSums(CT[[1]])[[1]]`*|*`r colSums(CT[[1]])[[2]]`*|*`r sum(CT[[1]])`*|
+
