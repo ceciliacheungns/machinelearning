@@ -20,7 +20,7 @@ set.seed(99)
 
 ## Q1: Import Pre-Processed Data and Splitting
 
-The loans data has been preprocessed using Python. We first read the `.csv` file which contains thepre-processed data with 8 columns in total, including the outcome of the loans, which can be either *"Charged off"* or *"Fully Paid"*.
+The loans data has been preprocessed using Python. We first read the `.csv` file which contains the pre-processed data with 8 columns in total, including the outcome of the loans, which can be either *"Charged off"* or *"Fully Paid"*.
 
 ```{r}
 # Load the data file
@@ -109,7 +109,7 @@ Table: Confusion Matrix for Validation Set
 | Charged Off        | `r confVal[1]` | `r confVal[3]` |
 | Fully Paid         | `r confVal[2]` | `r confVal[4]` |
 
-Again, all the validation records are predicted to be *"Fully Paid"*. Hence, its accuracy is the proportion of *"Fully Paid"* loans in the validation set.  
+Again, all the validation records are predicted to be *"Fully Paid"*. Hence, its accuracy is the proportion of *"Fully Paid"* loans in the validation set, which in this case is `r format(length(validation$loan_status[validation$loan_status=="Fully Paid"])/length(validation$loan_status),digits=4)`, close to the target accuracy of the total proportion of repaid loans. 
 
 The number of *"Fully Paid"* loans greatly outnumbers the number of *"Charged Off"* loans. Consequently, during the training phase, the algorithm discovers that doing a majority prediction using a single leaf node produces the best training accuracy. Splitting the tree using any of the seven features of the data will result in two child nodes with instances belonging primarily in the *"Fully Paid"* class. Consequently, the algorithm does not perform any split. Thus, the trained classification tree simply predicts all loans as *"Fully Paid"*.  
 
@@ -282,7 +282,7 @@ The final performance of the test set, using the cost matrix that previously res
 kable(round(testPerf[, 2:4], 4), caption = "Test Set Performance", col.names = c("Sensitivity", "Precision", "Accuracy"), row.names = FALSE)
 ```
 
-The resulting cost matrix for the test set is
+The resulting confusion matrix for the test set is
 
 Table: Confusion Matrix for Test Set
 
