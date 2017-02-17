@@ -1,7 +1,7 @@
 ---
 title: "Machine Learning"
 subtitle: "Assignment 3, Group Assignment"
-author: "Group 1"
+author: "Group 1: Siow Meng Low, Louise Fallon, Nikhita Venkatesan, George Pastakas, Cecilia Nok Sze Cheung, Steven Locorotondo"
 output: pdf_document
 ---
 
@@ -20,7 +20,9 @@ set.seed(99)
 
 ## Q1: Import Pre-Processed Data and Splitting
 
-The loans data has been preprocessed using Python. We first read the `.csv` file which contains the pre-processed data with 8 columns in total, including the outcome of the loans, which can be either *"Charged off"* or *"Fully Paid"*.
+The loans data has been preprocessed using Python code provided. There is a slight amendment to the Python file "cleanup.py": the first row of the CSV file is not required, hence we set *skiprows = 1* in *read_csv()* function. The modified Python code is submitted as well.  
+
+We first read the `.csv` file which contains the pre-processed data with 8 columns in total, including the outcomes of the loans, which can be either *"Charged off"* or *"Fully Paid"*.
 
 ```{r}
 # Load the data file
@@ -59,7 +61,7 @@ t <- table(processedLoans$loan_status)
 propRepaid <- nrow(processedLoans[processedLoans$loan_status == "Fully Paid", ]) / nrow(processedLoans)
 ```
 
-The total number of loans in the data that fall each category is
+The total number of loans in the data that fall into each category is
 
 Table: Number of instances in each class
 
@@ -87,7 +89,7 @@ Table: Confusion Matrix for Training Set
 | Charged Off      | `r confTrain[1]` | `r confTrain[3]` |
 | Fully Paid       | `r confTrain[2]` | `r confTrain[4]` |
 
-As observed, the classification tree classifies all training samples as *"Fully Paid"* and its accuracy is simply the proportion of *"Fully Paid"* loans in the training set. 
+As observed, the classification tree classifies all training samples as *"Fully Paid"* and its accuracy is simply the proportion of *"Fully Paid"* loans in the training set, which in this case is `r format(length(train$loan_status[train$loan_status=="Fully Paid"])/length(train$loan_status),digits=4)`, close to the target accuracy of the total proportion of repaid loans. 
 
 We will now use the classifier to predict the outcome of each lean in the validation set.
 
@@ -111,15 +113,26 @@ Table: Confusion Matrix for Validation Set
 
 Again, all the validation records are predicted to be *"Fully Paid"*. Hence, its accuracy is the proportion of *"Fully Paid"* loans in the validation set, which in this case is `r format(length(validation$loan_status[validation$loan_status=="Fully Paid"])/length(validation$loan_status),digits=4)`, close to the target accuracy of the total proportion of repaid loans. 
 
-The number of *"Fully Paid"* loans greatly outnumbers the number of *"Charged Off"* loans. Consequently, during the training phase, the algorithm discovers that doing a majority prediction using a single leaf node produces the best training accuracy. Splitting the tree using any of the seven features of the data will result in two child nodes with instances belonging primarily in the *"Fully Paid"* class. Consequently, the algorithm does not perform any split. Thus, the trained classification tree simply predicts all loans as *"Fully Paid"*.  
+To understand this behaviour, we will need to refer to the default **[pruning behaviour of C5.0](http://www.rulequest.com/see5-win.html#OTHER)**. A subtree will be pruned if it has an error estimate higher than the "CF Option", with a default value 0.25 (this value can be set using *C5.0Control()*). A higher value of "CF Option" might increase the tendency of overfitting to training data.  
 
-The algorithm might end up with leaf nodes that might contain a majority of *"Charged Off"* loans after a significantly large number of splits. However, they myopic approach of classification trees prevents us from reaching that possible point.
+As we know, the number of *"Fully Paid"* loans greatly outnumbers the number of *"Charged Off"* loans. Consequently, during the training phase, the algorithm discovers that further splitting the tree (using any of the seven features) does not reduce the error estimate of the subtree to below 0.25: even though the algorithm could potentially perform splitting such that *"Charged Off"* are majority categories in certain leaf nodes, this improvement is insignificant when compared to the error estimate of the subtree (due to the fact that *"Fully Repaid"* loans are the predominant class in most of the nodes).  
+
+Consequently, the algorithm prunes away all the subtrees and we are only left with one root node. Thus, the trained classification tree simply predicts all loans as *"Fully Paid"*.  
 
 ## Q3: C50 Classification Tree with Costs Adjustments  
 
-We will need to train the classification tree with a cost matrix to correct the default behaviour of `C50` in maximising the accuracy.  
+We will need to train the classification tree with a cost matrix to correct the default behaviour of `C5.0` in maximising the accuracy.  
 
-Granting a loan to a customer who is likely to default is much more costlier (i.e. False Negative) than denying loan to a customer who is likely able to pay back (i.e. False Positive). In the cost matrices, we set the cost of False Positive to $1$ to test out different values of the cost of False Negative (ranging from $2.8$ to $5.2$, in increment of $0.1$).  
+Granting a loan to a customer who is likely to default is much more costlier (i.e. False Negative) than denying loan to a customer who is likely able to pay back (i.e. False Positive). In the cost matrices, we set the cost of False Positive to $1$ and test out different values of the cost of False Negative (ranging from $2.8$ to $5.2$, in increment of $0.1$). The cost matrix is represented in the table below (with 'X' indicating the varying cost of False Negative which we would like to calibrate):  
+
+Table: Cost Matrix Representation
+
+|*actual / predicted*| Charged Off | Fully Paid |
+|------------------|:-----------:|:----------:|
+| Charged Off      | 0 | X |
+| Fully Paid       | 1 | 0 |
+
+Note that in the above representation, columns are the predicted classes and rows are the actual classes. While passing in to C5.0 function in the R code, we use the transpose of this matrix since R function requires the cost matrix to be represented in the other way (i.e. columns correspond to actual classes and rows correspond to predicted classes).  
 
 ```{r}
 # Q3
@@ -133,7 +146,7 @@ for (i in seq(2.8, 5.2, by = 0.1)) {
     
     costsMat <- matrix(c(0, i, 1, 0), nrow = 2, dimnames = costsMatDims)
     costsTree <- C5.0(x = subset(train, select = -loan_status), y = train$loan_status, costs = costsMat)
-    summary(costsTree)
+    #summary(costsTree)
     costsTreeTable <- table(validation$loan_status, 
                             predict(costsTree, subset(validation, select = -loan_status)))
     dimnames(costsTreeTable) <- confMatDims
@@ -185,7 +198,7 @@ The sensitivity levels we are interested in are 25%, 40% and 50%.
 The costs matrix which achieves sensitivity as close as possible to 25% is
 
 ```{r}
-idx <- which.min(abs(validationPerf$sens - 0.25)) # The index with sensitivity closest to 0.5
+idx <- which.min(abs(validationPerf$sens - 0.25)) # The index with sensitivity closest to 0.25
 cm <- t(costsMatList[[idx]])
 ```
 
@@ -196,14 +209,14 @@ Table: Cost Matrix for 25% Sensitivity
 | Charged Off      | `r cm[1]` | `r cm[3]` |
 | Fully Paid       | `r cm[2]` | `r cm[4]` |
 
-From the previous table, we can see that the specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
+From the previous table, we can see that this specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
 
 ### 40% Sensitivity  
 
 The costs matrix which achieves sensitivity as close as possible to 40% is
 
 ```{r}
-idx <- which.min(abs(validationPerf$sens - 0.4)) # The index with sensitivity closest to 0.5
+idx <- which.min(abs(validationPerf$sens - 0.4)) # The index with sensitivity closest to 0.4
 cm <- t(costsMatList[[idx]])
 ```
 
@@ -214,7 +227,7 @@ Table: Cost Matrix for 40% Sensitivity
 | Charged Off      | `r cm[1]` | `r cm[3]` |
 | Fully Paid       | `r cm[2]` | `r cm[4]` |
 
-From the previous table, we can see that the specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
+From the previous table, we can see that this specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
 
 ### 50% Sensitivity  
 
@@ -232,17 +245,21 @@ Table: Cost Matrix for 50% Sensitivity
 | Charged Off      | `r cm[1]` | `r cm[3]` |
 | Fully Paid       | `r cm[2]` | `r cm[4]` |
 
-From the previous table, we can see that the specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
+From the previous table, we can see that this specific cost matrix achieves sensitivity of `r format(validationPerf$sens[idx], digits = 4)` and precision of `r format(validationPerf$prec[idx], digits = 4)`. 
 
 ## Q4: Cost Parameter Matrix for Identifying Dubious Loan Applications  
 
-To lower the credit risk, we will need to identify as many dubious loan applicants as possible. However, we can see in the earlier section, the precision is very low. This means that out of all those applications that are highlighted as risky, only around `r format(validationPerf$prec[idx] * 100, digits = 2)`% are indeed *"Charged Off"* in the validation set. The drawback in reaching a sensitivity level of close to 50% is that the loan officers will need to manually cross-check large number of applications before 50% of the risky loans are identified.  
+The bank could use the classification tree to predict the loans that are potentially risky. The loan officers can then follow up by double-checking which of those are truly likely to be *"Charged Off"* in future.  
+
+To lower the credit risk, we will need to identify as many truly dubious loan applicants as possible. However, we can see in the earlier section, in order to reach 50% sensitivity level, the precision performance is very low. This means that out of all those applications that are highlighted as risky, only around `r format(validationPerf$prec[idx] * 100, digits = 2)`% are indeed *"Charged Off"* in the validation set. The drawback in reaching a sensitivity level of close to 50% is that the loan officers will need to manually cross-check large number of applications before 50% of the truly risky loans are identified.  
 
 Nevertheless, the cost of granting a loan to risky applicants still far outweighs this labour cost. Hence we pick the cost matrix which achieves sensitivity close to 50%.  
 
 ## Q5: Test Set Performance
 
-Using the cost matrix for 50% sensitivity, we retrain the classification tree using both training and validation data. The trained model is then tested against the test set. Below tabulates the test set performance and confusion matrix. 
+Using the cost matrix for 50% sensitivity, we retrain the classification tree using both training and validation data. By retraining the model using both training and validation set, the future performance can be more accurately estimated (compared to the scenario where only the training set is used), because we will eventually train the model on the full sample of data to maximise its performance.  
+
+The retrained model is then tested against the test set. Below tabulates the test set performance and confusion matrix. 
 
 ```{r, results="hide"}
 # Q4
