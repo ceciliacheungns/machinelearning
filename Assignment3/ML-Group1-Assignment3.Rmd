@@ -89,7 +89,7 @@ Table: Confusion Matrix for Training Set
 | Charged Off      | `r confTrain[1]` | `r confTrain[3]` |
 | Fully Paid       | `r confTrain[2]` | `r confTrain[4]` |
 
-As observed, the classification tree classifies all training samples as *"Fully Paid"* and its accuracy is simply the proportion of *"Fully Paid"* loans in the training set, which in this case is `r format(length(train$loan_status[train$loan_status=="Fully Paid"])/length(train$loan_status),digits=4)`, close to the target accuracy of the total proportion of repaid loans. 
+As observed, the classification tree classifies all training samples as *"Fully Paid"* and its accuracy is simply the proportion of *"Fully Paid"* loans in the training set, which in this case is `r format(length(train$loan_status[train$loan_status=="Fully Paid"])/length(train$loan_status),digits=4)`, close to the total proportion of repaid loans. 
 
 We will now use the classifier to predict the outcome of each lean in the validation set.
 
@@ -111,7 +111,7 @@ Table: Confusion Matrix for Validation Set
 | Charged Off        | `r confVal[1]` | `r confVal[3]` |
 | Fully Paid         | `r confVal[2]` | `r confVal[4]` |
 
-Again, all the validation records are predicted to be *"Fully Paid"*. Hence, its accuracy is the proportion of *"Fully Paid"* loans in the validation set, which in this case is `r format(length(validation$loan_status[validation$loan_status=="Fully Paid"])/length(validation$loan_status),digits=4)`, close to the target accuracy of the total proportion of repaid loans. 
+Again, all the validation records are predicted to be *"Fully Paid"*. Hence, its accuracy is the proportion of *"Fully Paid"* loans in the validation set, which in this case is `r format(length(validation$loan_status[validation$loan_status=="Fully Paid"])/length(validation$loan_status),digits=4)`, close to the total proportion of repaid loans. 
 
 To understand this behaviour, we will need to refer to the default **[pruning behaviour of C5.0](http://www.rulequest.com/see5-win.html#OTHER)**. A subtree will be pruned if it has an error estimate higher than the "CF Option", with a default value 0.25 (this value can be set using *C5.0Control()*). A higher value of "CF Option" might increase the tendency of overfitting to training data.  
 
