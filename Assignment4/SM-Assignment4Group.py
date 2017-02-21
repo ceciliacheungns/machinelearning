@@ -31,10 +31,10 @@ for offset in ['0','100','200']:
 links=['http://sofifa.com'+l for l in links if 'player/'in l]  # Get all the URL links to players' pages
 
 #pattern regular expression 
-pattern=b"""\s*([\w\s]*)"""   #file starts with empty spaces... players name...-other stuff     
-pattern += b""".*\d*\)\s*?([\w\s]*)Age""" # New addition: extraction of positions
+pattern=r"""\s*([\w\s]*)"""   #file starts with empty spaces... players name...-other stuff
+pattern += r""".*\d*\)\s*?([\w\s]*)Age""" # New addition: extraction of positions
 for attr in attributes:
-    pattern+=b""".*?(\d*\s*"""+attr.encode('ascii','ignore')+b""")"""  #for each attribute we have other stuff..number..attribute..other stuff
+    pattern+=r""".*?(\d*\s*"""+attr+r""")"""  #for each attribute we have other stuff..number..attribute..other stuff
 pat=re.compile(pattern, re.DOTALL)    #parsing multiline text
 
 rows=[]
@@ -45,11 +45,11 @@ for j, link in enumerate(links):
     playersoup=BeautifulSoup(playerpage.content,'html.parser')
     text=playersoup.get_text()
     text=unicodedata.normalize('NFKD', text).encode('ascii','ignore') # Unicode normalise and encode using ASCII
-    a=pat.match(text) # Match all the fields specified in the regular expressions
-    row.append(a.group(1).decode('ascii')) # Player's Name
-    row.append(a.group(2).decode('ascii').strip()) # New Addition: Position Info
+    a=pat.match(text.decode('ascii')) # Match all the fields specified in the regular expressions
+    row.append(a.group(1)) # Player's Name
+    row.append(a.group(2).strip()) # New Addition: Position Info
     for i in range(3,len(attributes)+3): # The attributes of the players
-        row.append(int(a.group(i).decode('ascii').split()[0]))
+        row.append(int(a.group(i).split()[0]))
     rows.append(row) # Append all the information of this player
     print(row[1]) # Print Player Name
 df=pd.DataFrame(rows,columns=['link','name','position']+attributes) # Initialise Panda Dataframe
@@ -78,7 +78,7 @@ kmeans = KMeans(init='k-means++', n_clusters = numClusters, n_init = 10, random_
 # Cluster 2 = Mainly Goalkeepers
 # Cluster 3 = Mainly Defensive Midfielders
 # Cluster 4 = Mainly Centre-Backs (Defenders)
-# For 400 Argentina Players
+# For 300 Argentina Players
 # Cluster 0 = Mainly Strikers
 # Cluster 1 = Mainly Centre-Backs (Defenders)
 # Cluster 2 = All Goalkeepers
